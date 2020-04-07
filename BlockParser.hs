@@ -11,6 +11,9 @@ data Item =
 
 type CharParser st = Parsec [Char] st
 
+-- A item is either a block delimited
+-- by \begin{name} \end{name}
+-- or plain text
 item :: CharParser st Item
 item =  
   do
@@ -18,19 +21,25 @@ item =
     Block blockName <$> blockBody <* end blockName
   <|> text
 
+-- series of items (including nested blocks)
 blockBody :: CharParser st [Item]
 blockBody = many item
 
+-- \begin{name}
+-- returns name or fails
 begin :: CharParser st String
 begin = try $ string "\\begin" *> braced
 
+-- tries \end{str} for a given string
 end :: String -> CharParser st String
 end str = try $
   string "\\end" *> between (char '{') (char '}') (string str)
   
+-- string delimited by braces
 braced :: CharParser st String
 braced = between (char '{') (char '}') (many $ noneOf "}")
 
+-- a non-empty string of characters other than \ $ { }
 text :: CharParser st Item
 text = Text <$> many1 (noneOf "\\${}")
   
